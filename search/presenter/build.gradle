@@ -8,6 +8,11 @@ android {
     minSdkVersion buildConfig.minSdk
   }
 
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+
   lintOptions {
     textReport true
     textOutput 'stdout'
@@ -27,7 +32,7 @@ dependencies {
   api deps.kotlin.coroutines.jdk
   implementation deps.kotlin.coroutines.rx2
 
-  api deps.rx.java
+  implementation deps.rx.java
   implementation deps.rx.relay
 }
 

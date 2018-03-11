@@ -7,7 +7,7 @@ buildscript {
       'version': [
           'major': 1,
           'minor': 2,
-          'patch': 0,
+          'patch': 1,
           'build': 0,
       ],
   ]
@@ -15,15 +15,15 @@ buildscript {
   ext.buildConfig.version['code'] = buildConfig.version.major * 1000000 + buildConfig.version.minor * 10000 + buildConfig.version.patch * 100 + buildConfig.version.build
 
   ext.versions = [
-      'supportLibrary': '27.0.2',
+      'supportLibrary': '27.1.0',
       'atsl': '1.0.1',
-      'kotlin': '1.2.30-eap-47',
-      'kotlinCoroutines': '0.22.2',
+      'kotlin': '1.2.30',
+      'kotlinCoroutines': '0.22.5',
       'kotlinSerialization': '0.4',
-      'okhttp': '3.9.1',
+      'okhttp': '3.10.0',
       'retrofit': '2.3.0',
       'kotshi': '1.0.1',
-      'dagger': '2.14.1',
+      'dagger': '2.15',
   ]
 
   ext.deps = [
@@ -59,13 +59,15 @@ buildscript {
           'support': [
               'annotations': "com.android.support:support-annotations:${versions.supportLibrary}",
               'coreUtils': "com.android.support:support-core-utils:${versions.supportLibrary}",
+              'compat': "com.android.support:support-compat:${versions.supportLibrary}",
               'recyclerView': "com.android.support:recyclerview-v7:${versions.supportLibrary}",
               'customTabs': "com.android.support:customtabs:${versions.supportLibrary}",
+              'appCompat': "com.android.support:appcompat-v7:${versions.supportLibrary}",
               'design': "com.android.support:design:${versions.supportLibrary}",
               'constraintLayout': 'com.android.support.constraint:constraint-layout:1.1.0-beta5',
           ],
           'x': [
-              'coreKtx': 'androidx.core:core-ktx:0.1',
+              'coreKtx': 'androidx.core:core-ktx:0.2',
           ],
           'test': [
               'runner': "com.android.support.test:runner:${versions.atsl}",
@@ -95,13 +97,15 @@ buildscript {
           'runtime': "com.google.dagger:dagger:${versions.dagger}",
           'compiler': "com.google.dagger:dagger-compiler:${versions.dagger}",
       ],
-      'okio': 'com.squareup.okio:okio:1.13.0',
+      'okio': 'com.squareup.okio:okio:1.14.0',
       'moshi': 'com.squareup.moshi:moshi:1.5.0',
       'timber': 'com.jakewharton.timber:timber:4.6.1',
       'junit': 'junit:junit:4.12',
       'truth': 'com.google.truth:truth:0.39',
-      'sqlBrite': 'com.squareup.sqlbrite3:sqlbrite-kotlin:3.1.1',
+      'sqlBrite': 'com.squareup.sqlbrite3:sqlbrite-kotlin:3.2.0',
       'bugsnag': 'com.bugsnag:bugsnag-android:4.2.2',
+      'argparser': 'com.xenomachina:kotlin-argparser:2.0.4',
+      'byteunits': 'com.jakewharton.byteunits:byteunits:0.9.1',
   ]
 
   ext.isCiBuild = System.getenv('CI') == 'true'
@@ -110,22 +114,15 @@ buildscript {
     jcenter()
     google()
     maven { url "https://kotlin.bintray.com/kotlinx" }
-    maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }
   }
 
   dependencies {
-    classpath 'com.android.tools.build:gradle:3.2.0-alpha02'
+    classpath 'com.android.tools.build:gradle:3.2.0-alpha05'
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}"
     classpath "org.jetbrains.kotlinx:kotlinx-gradle-serialization-plugin:${versions.kotlinSerialization}"
     classpath 'com.squareup.sqldelight:gradle-plugin:0.7.0'
     classpath 'com.eriwen:gradle-js-plugin:1.12.1'
     classpath 'com.github.triplet.gradle:play-publisher:1.2.0'
-  }
-
-  configurations.all {
-    resolutionStrategy {
-      force 'net.sf.proguard:proguard-base:6.0'
-    }
   }
 }
 
@@ -134,7 +131,6 @@ allprojects {
     jcenter()
     google()
     maven { url "https://kotlin.bintray.com/kotlinx" }
-    maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }
   }
 
   // Force all of the primary support libraries to use the same version.
@@ -147,6 +143,18 @@ allprojects {
       }
     }
   }
+
+  tasks.withType(Test) {
+    testLogging {
+      events "skipped", "failed", "passed"
+    }
+  }
+  // TODO same thing for instrumentation tests: https://issuetracker.google.com/issues/37056080
+  //tasks.withType(AndroidTestTask) {
+  //  testLogging {
+  //    events "skipped", "failed", "passed"
+  //  }
+  //}
 }
 
 def gitSha() {
@@ -200,6 +208,8 @@ task projectDependencyGraph {
           dot << "  \"${project.path}\" -> \"${dependency.path}\""
           if (config.name.toLowerCase().endsWith('implementation')) {
             dot << " [style=dotted]"
+          } else if (config.name == 'expectedBy') {
+            dot << " [style=dashed, arrowhead=none]"
           }
           dot << '\n'
         }

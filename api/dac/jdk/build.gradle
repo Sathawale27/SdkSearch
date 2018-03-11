@@ -6,14 +6,15 @@ apply plugin: 'kotlin-kapt'
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
+archivesBaseName = 'api-dac'
+
 dependencies {
   expectedBy project(':api:dac')
   implementation deps.kotlin.stdlib.jdk
   api deps.kotlin.coroutines.jdk
   api deps.kotlin.serialization.jdk
 
-  implementation deps.okhttp.client
-  implementation deps.okhttp.logging
+  api deps.okhttp.client
   testImplementation deps.okhttp.mockWebServer
 
   implementation deps.retrofit.client

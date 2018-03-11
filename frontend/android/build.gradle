@@ -44,6 +44,10 @@ android {
     textOutput 'stdout'
     lintConfig rootProject.file('lint.xml')
 
+    checkDependencies true
+    checkTestSources true
+    explainIssues false
+
     // We run a full lint analysis as build part in CI, so skip vital checks for assemble task.
     checkReleaseBuilds false
   }
@@ -96,7 +100,7 @@ android {
 }
 
 dependencies {
-  implementation project(':search:presenter')
+  implementation project(':search:ui')
 
   debugImplementation project(':debug-updater')
 
@@ -104,12 +108,13 @@ dependencies {
   implementation deps.kotlin.coroutines.jdk
   implementation deps.kotlin.coroutines.android
 
-  implementation deps.android.support.annotations
-  implementation deps.android.support.recyclerView
   implementation deps.android.support.customTabs
-  implementation deps.android.support.design
-  implementation deps.android.support.constraintLayout
+  implementation deps.android.support.appCompat
   implementation deps.android.x.coreKtx
+
+  implementation deps.okhttp.logging
+
+  implementation deps.byteunits
 
   implementation deps.timber
   implementation deps.bugsnag

@@ -1,7 +1,7 @@
 -dontobfuscate
 
-# Desugaring Java 8 language features happens after ProGuard.
--dontwarn java.lang.invoke.LambdaMetafactory
+# Retrofit does reflection on generic parameters and InnerClass is required to use Signature.
+-keepattributes Signature, InnerClasses
 
 # Many libraries use JSR 305 annotations for embedding nullability information.
 -dontwarn javax.annotation.**
@@ -11,3 +11,6 @@
 
 # Kotlin serialization generates sibling serializer classes which are looked up reflectively.
 -keep class **.*$serializer { *; }
+
+# OkHttp platform used only on JVM and when Conscrypt dependency is available.
+-dontwarn okhttp3.internal.platform.ConscryptPlatform

@@ -5,27 +5,27 @@ import com.jakewharton.sdksearch.store.Item
 import com.jakewharton.sdksearch.store.ItemStore
 import com.jakewharton.sdksearch.sync.ItemSynchronizer
 import io.reactivex.Observable
-import io.reactivex.functions.Consumer
 import kotlinx.coroutines.experimental.CoroutineDispatcher
 import kotlinx.coroutines.experimental.CoroutineStart.UNDISPATCHED
 import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.channels.ConflatedChannel
+import kotlinx.coroutines.experimental.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.rx2.openSubscription
 import kotlinx.coroutines.experimental.selects.select
 import java.util.concurrent.TimeUnit
+import java.util.function.Consumer
 
 class SearchPresenter(
   private val context: CoroutineDispatcher,
   private val store: ItemStore,
   private val synchronizer: ItemSynchronizer
 ) {
-  private val _models = ConflatedChannel<Model>()
-  val models: ReceiveChannel<Model> get() = _models
+  private val _models = ConflatedBroadcastChannel<Model>()
+  val models: ReceiveChannel<Model> get() = _models.openSubscription()
 
   private val _events = PublishRelay.create<Event>()
-  val events: Consumer<Event> get() = _events
+  val events: Consumer<Event> get() = Consumer { _events.accept(it) }
 
   fun start(): Job {
     val itemCount = store.count().openSubscription()
@@ -33,6 +33,7 @@ class SearchPresenter(
     val queryItems = _events
         .ofType<Event.QueryChanged>()
         .map(Event.QueryChanged::query)
+        .distinctUntilChanged()
         .switchMap { query ->
           val results = if (query.isBlank()) Observable.just(emptyList())
           else store.queryItems(query).delaySubscription(200, TimeUnit.MILLISECONDS)
@@ -64,7 +65,7 @@ class SearchPresenter(
             model.copy(syncStatus = Model.SyncStatus(0, 0))
           }
         }
-        _models.send(model)
+        _models.offer(model)
       }
     }
 

@@ -8,6 +8,9 @@ import com.jakewharton.sdksearch.reference.AndroidReference
 import com.jakewharton.sdksearch.reference.ITEM_LIST_URL_PATHS
 import com.jakewharton.sdksearch.reference.PRODUCTION_DAC
 import com.jakewharton.sdksearch.reference.PRODUCTION_GIT_WEB
+import com.xenomachina.argparser.ArgParser
+import com.xenomachina.argparser.default
+import com.xenomachina.argparser.mainBody
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import okhttp3.OkHttpClient
@@ -17,10 +20,29 @@ import java.util.regex.Pattern
 
 private val PACKAGE = Pattern.compile("^([a-z0-9]+.)+")
 
+private class CliConfig(parser: ArgParser) {
+  val gitWeb by parser.storing("--gitweb", argName = "HOST", help = "git web host (default: $PRODUCTION_GIT_WEB)")
+      .default(PRODUCTION_GIT_WEB)
+
+  val dac by parser.storing("--dac", argName = "HOST", help = "DAC host (default: $PRODUCTION_DAC)")
+      .default(PRODUCTION_DAC)
+
+  val packages by parser.positionalList("PACKAGE", help = "package prefixes to validate (default: all)")
+      .default(listOf(""))
+}
+
 fun main(vararg args: String) = runBlocking {
+  val config = mainBody {
+    val parser = ArgParser(args)
+    val config = CliConfig(parser)
+    parser.force()
+    return@mainBody config
+  }
+
   val client = OkHttpClient()
   val service = DacComponent.builder()
-      .baseUrl(BaseUrl(PRODUCTION_DAC))
+      .baseUrl(BaseUrl(config.dac))
+      .client(client)
       .build()
       .documentationService()
 
@@ -29,9 +51,10 @@ fun main(vararg args: String) = runBlocking {
       .flatMap { it.await() }
       .filter { it.type == "class" }
       .map { it.label }
+      .filter { fqcn -> config.packages.any { fqcn.startsWith(it) } }
       .sorted()
 
-  val reference = AndroidReference(PRODUCTION_GIT_WEB)
+  val reference = AndroidReference(config.gitWeb)
 
   var pad = 0
   fun logStatus(message: String) {
@@ -74,5 +97,9 @@ fun main(vararg args: String) = runBlocking {
     index++
   }
 
-  logPrint("")
+  logPrint("Checked $index references!")
+
+  // Shut down OkHttpClient resources so that the JVM can exit cleanly.
+  client.dispatcher().executorService().shutdown()
+  client.connectionPool().evictAll();
 }
